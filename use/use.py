@@ -1,5 +1,6 @@
 import discord
 from discord import Game, Embed
+from os import path
 
 async def error(content, channel, client):
     await client.send_message(channel, embed=Embed(color=discord.Color.red(), description=content))
@@ -25,3 +26,14 @@ def exist_all_folders(dbx, path):
     for file in res.entries:
         count += 1
     return count
+
+async def dev_authorisation_type1(server, member):
+    if path.isfile("data/permission_type1.txt"):
+        with open("data/permission_type1.txt") as f:
+            content = f.readlines()
+            content = [x.strip() for x in content]
+            f.close()
+        for x in member.roles:
+            if x.name in content:
+                return True
+    return False

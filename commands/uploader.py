@@ -4,7 +4,7 @@ import discord
 import CONECT
 import os
 import random
-from use import use
+from use import use,get
 import time
 import threading
 import asyncio
@@ -15,67 +15,70 @@ status = 0
 send_channel = None
 
 send_status = 0
-send_time = (12,19)
+send_time = (20, 00)
 
 async def ex(args, message, client, invoke, server):
     global status, send_channel
     dbx = dropbox.Dropbox(CONECT.DROP_TOKEN)
-    if use.exist_all_folders(dbx,"/Pictures") == 3:
-        if len(args) > 0:
-            args_out = args.__str__()[1:-1].replace("'", "").replace(",", "")
-            if args_out == "ping up":
-                await client.send_message(message.channel, "Up Pong!")
-            elif args_out == "reset info":
-                await reset_info(dbx,client,message.channel)
-            elif args_out == "upload count":
-                await get_upload_count(dbx,client,message.channel)
-            elif args_out == "send":
-                await send(dbx,client,message.channel)
+
+    if await use.dev_authorisation_type1(server, get.member_by_message(server, message)):
+        if use.exist_all_folders(dbx,"/Pictures") == 3:
+            if len(args) > 0:
+                args_out = args.__str__()[1:-1].replace("'", "").replace(",", "")
+                if args_out == "ping up":
+                    await client.send_message(message.channel, "Up Pong!")
+                elif args_out == "reset info":
+                    await reset_info(dbx,client,message.channel)
+                elif args_out == "upload count":
+                    await get_upload_count(dbx,client,message.channel)
+                elif args_out == "send":
+                    await send(dbx,client,message.channel)
 
 
-            elif args_out == "status":
-                if status == 0:
-                    content = "The Autouploader is off."
-                else:
-                    content = "The Autouploader is on."
-                await client.send_message(message.channel, content)
+                elif args_out == "status":
+                    if status == 0:
+                        content = "The Autouploader is off."
+                    else:
+                        content = "The Autouploader is on."
+                    await client.send_message(message.channel, content)
 
 
-            elif args_out == "start":
-                if status == 0:
-                    await check_for_channel_file(dbx, client, message.channel)
-                    if send_channel != None:
-                        content = "Starting uploader."
-                        status = 1
+                elif args_out == "start":
+                    if status == 0:
+                        await check_for_channel_file(dbx, client, message.channel, server)
+                        #print (send_channel)
+                        if send_channel != None:
+                            content = "Starting uploader."
+                            status = 1
 
 
-                        main_loop = asyncio.get_event_loop()
+                            main_loop = asyncio.get_event_loop()
 
-                        #Start the thread
-                        threading.Thread(name='sender_loop', target=sender_loop, args=(client, message.channel, main_loop, dbx)).start()
+                            #Start the thread
+                            threading.Thread(name='sender_loop', target=sender_loop, args=(client, message.channel, main_loop, dbx)).start()
+
+                        else:
+                            content = "There is no channel set."
 
                     else:
-                        content = "There is no channel set."
-
-                else:
-                    content = "The Autouploader is already on."
-                await client.send_message(message.channel, content)
+                        content = "The Autouploader is already on."
+                    await client.send_message(message.channel, content)
 
 
-            elif args_out == "stop":
-                if status == 0:
-                    content = "The Autouploader is already off."
-                else:
-                    content = "Stopping uploader."
-                    status = 0
-                await client.send_message(message.channel, content)
+                elif args_out == "stop":
+                    if status == 0:
+                        content = "The Autouploader is already off."
+                    else:
+                        content = "Stopping uploader."
+                        status = 0
+                    await client.send_message(message.channel, content)
 
-            elif args_out == "set":
-                await set_channel(dbx, client, message.channel)
+                elif args_out == "set":
+                    await set_channel(dbx, client, message.channel)
 
 
-    else:
-        await client.send_message(message.channel, "There is a storage problem. Folders are missing!")
+        else:
+            await client.send_message(message.channel, "There is a storage problem. Folders are missing!")
 
 
 
@@ -122,7 +125,9 @@ async def send(dbx,client,channel):
         out.write(f.content)
         out.close()
 
+        print("mid")
         await client.send_file(channel, savepath)
+        print("send")
         from_path = "/Pictures/main/" + send_name
         to_path = "/Pictures/output/" + send_name
 
@@ -167,7 +172,7 @@ async def set_channel(dbx, client, channel):
     send_channel = channel
 
 
-async def check_for_channel_file(dbx, client, channel):
+async def check_for_channel_file(dbx, client, channel, server):
     global send_channel
     path_channel = "data/temp/channel.txt"
     path_dbx = "/Pictures/info/channel.txt"
@@ -189,14 +194,15 @@ async def check_for_channel_file(dbx, client, channel):
             content = [x.strip() for x in content]
             f.close()
 
-        channel_f = client.get_channel(int(content[0]))
+        #print(int(content[0]))
+        channel_f = server.get_channel(str(content[0]))
         send_channel = channel_f
 
 
 
 def sender_loop(client, channel, main_loop, dbx):
     global send_channel, status, send_time
-
+    print("loop_on")
     while status == 1:
 
         if check_for_time(send_time):
@@ -208,18 +214,37 @@ def sender_loop(client, channel, main_loop, dbx):
 def check_for_time(send_time):
     global send_status
     ti = str(datetime.utcnow()).split(" ")[1].split(":")[0:2]
-    ti[1] = int(ti[1])
-    ti[0] = int(ti[0]) + 2
-    if ti[0] > 24:
-        ti[0] -= 24
 
+    cur_time = time_create(int(ti[0])+2, int(ti[1]))
+
+    window_send = time_create(send_time[0],send_time[1]+2)
+
+    window_reset = time_create(send_time[0], send_time[1] + 4)
 
     #Not corrected
-    if send_time[0] == ti[0] and send_time[1] <= ti[1] and send_time[1] + 2 >= ti[1]:
+    if comp_time_greater(cur_time, send_time) and comp_time_greater(window_send, cur_time):
+        print("Check")
         if send_status == 0:
             send_status = 1
             return True
 
-    if send_time[0] == ti[0] and send_time[1] + 5 <= ti[1] and send_time[1] + 7 >= ti[1]:
+    if comp_time_greater(cur_time, window_send) and comp_time_greater(window_reset,cur_time):
         send_status = 0
+    return False
+
+
+def time_create(hours, min):
+    if min >=60:
+        min -= 60
+        hours += 1
+    if hours >= 24:
+        hours -= 24
+
+    return (hours,min)
+
+def comp_time_greater(time1, time2):
+
+    if time1[0] >= time2[0]:
+        if time1[1] >= time2[1]:
+            return True
     return False
