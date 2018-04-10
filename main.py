@@ -5,7 +5,7 @@ import CONECT
 import STATICS
 from use import use,get
 import time
-from commands import cmd_new, auto_uplader
+from commands import uploader
 
 
 
@@ -22,7 +22,7 @@ client = discord.Client()
 
 commands = {
 
-    "uploader": cmd_uploader,
+    "uploader": uploader,
 }
 
 @client.event

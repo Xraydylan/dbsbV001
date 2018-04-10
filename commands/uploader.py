@@ -15,7 +15,7 @@ status = 0
 send_channel = None
 
 send_status = 0
-send_time = (20,00)
+send_time = (12,19)
 
 async def ex(args, message, client, invoke, server):
     global status, send_channel
@@ -43,7 +43,7 @@ async def ex(args, message, client, invoke, server):
 
             elif args_out == "start":
                 if status == 0:
-                    check_for_channel_file(dbx, client, message.channel)
+                    await check_for_channel_file(dbx, client, message.channel)
                     if send_channel != None:
                         content = "Starting uploader."
                         status = 1
