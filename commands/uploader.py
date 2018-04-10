@@ -14,11 +14,12 @@ from datetime import datetime
 status = 0
 send_channel = None
 
+first = 0
 send_status = 0
 send_time = (20, 00)
 
 async def ex(args, message, client, invoke, server):
-    global status, send_channel
+    global status, send_channel, first
     dbx = dropbox.Dropbox(CONECT.DROP_TOKEN)
 
     if await use.dev_authorisation_type1(server, get.member_by_message(server, message)):
@@ -76,6 +77,9 @@ async def ex(args, message, client, invoke, server):
                 elif args_out == "set":
                     await set_channel(dbx, client, message.channel)
 
+                elif args_out == "first message":
+                    first = 1
+                    await client.send_message(message.channel, "Activated first message!")
 
         else:
             await client.send_message(message.channel, "There is a storage problem. Folders are missing!")
@@ -110,6 +114,7 @@ async def reset_info(dbx,client,channel):
     os.remove("data/info_reset.txt")
 
 async def send(dbx,client,channel):
+    global first
     res = dbx.files_list_folder("/Pictures/main")
     file_list = []
     for file in res.entries:
@@ -126,6 +131,10 @@ async def send(dbx,client,channel):
         out.close()
 
         print("mid")
+        if first == 1:
+            first = 0
+            await client.send_message(channel, "Hey, hey, hey\nSaucy Bot is online and will currently send a picture every day XD!!!")
+
         await client.send_file(channel, savepath)
         print("send")
         from_path = "/Pictures/main/" + send_name
