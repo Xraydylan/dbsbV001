@@ -6,6 +6,7 @@ import STATICS
 from use import use,get
 import time
 from commands import uploader
+import asyncio
 
 
 
@@ -27,7 +28,7 @@ commands = {
 
 @client.event
 async def on_ready():
-    global n_server
+    global n_server,client
     print("Bot is logged in successfully. Running on servers:\n")
     for s in client.servers:
         print("  - %s (%s)" % (s.name, s.id))
@@ -37,7 +38,7 @@ async def on_ready():
             bot_status = 1
     if n_server == None:
         print("No matching server found!")
-    uploader.re_status()
+    await uploader.re_status(client, asyncio.get_event_loop(), n_server)
 
 
 

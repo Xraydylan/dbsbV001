@@ -33,7 +33,7 @@ async def ex(args, message, client, invoke, server):
                 elif args_out == "upload count":
                     await get_upload_count(dbx,client,message.channel)
                 elif args_out == "send":
-                    await send(dbx,client,message.channel)
+                    await send(client,message.channel)
 
 
                 elif args_out == "status":
@@ -46,7 +46,7 @@ async def ex(args, message, client, invoke, server):
 
                 elif args_out == "start":
                     if status == 0:
-                        await check_for_channel_file(dbx, client, message.channel, server)
+                        await check_for_channel_file(client, message.channel, server)
                         #print (send_channel)
                         if send_channel != None:
                             content = "Starting uploader."
@@ -56,7 +56,7 @@ async def ex(args, message, client, invoke, server):
                             main_loop = asyncio.get_event_loop()
 
                             #Start the thread
-                            threading.Thread(name='sender_loop', target=sender_loop, args=(client, message.channel, main_loop, dbx)).start()
+                            threading.Thread(name='sender_loop', target=sender_loop, args=(client,  main_loop)).start()
 
                         else:
                             content = "There is no channel set."
@@ -122,8 +122,9 @@ async def reset_info(dbx,client,channel):
     up.close()
     os.remove(path_file)
 
-async def send(dbx,client,channel):
+async def send(client,channel):
     global first
+    dbx = dropbox.Dropbox(CONECT.DROP_TOKEN)
     res = dbx.files_list_folder("/Pictures/main")
     file_list = []
     for file in res.entries:
@@ -188,7 +189,7 @@ async def set_channel(dbx, client, channel):
     send_channel = channel
 
 
-async def check_for_channel_file(dbx, client, channel, server):
+async def check_for_channel_file(client, channel, server):
     global send_channel
     path_channel = "data/temp/channel.txt"
     path_dbx = "/Pictures/info/channel.txt"
@@ -201,7 +202,8 @@ async def check_for_channel_file(dbx, client, channel, server):
 
 
     if not path.isfile(path_channel):
-        await client.send_message(channel, "No channel was previously set.")
+        if channel != None:
+            await client.send_message(channel, "No channel was previously set.")
     else:
         with open(path_channel) as f:
             content = f.readlines()
@@ -214,12 +216,12 @@ async def check_for_channel_file(dbx, client, channel, server):
 
 
 
-def sender_loop(client, channel, main_loop, dbx):
+def sender_loop(client, main_loop):
     global send_channel, status, send_time
     print("loop_on")
     while status == 1:
         if check_for_time(send_time):
-            main_loop.create_task(send(dbx,client,send_channel))
+            main_loop.create_task(send(client,send_channel))
         time.sleep(60)
 
 
@@ -271,7 +273,7 @@ def update_status(num):
     use.drop_up(path_drop, path_file)
 
 
-def re_status():
+async def re_status(client, main_loop, server):
     global status
 
     path_file = "data/temp/status.txt"
@@ -290,6 +292,11 @@ def re_status():
         error_process("Status reset!")
 
     status = int(content[0])
+
+    if status == 1:
+        await check_for_channel_file(client, None, server)
+        # Start the thread
+        threading.Thread(name='sender_loop', target=sender_loop, args=(client, main_loop)).start()
 
 
 
