@@ -37,6 +37,7 @@ async def on_ready():
             bot_status = 1
     if n_server == None:
         print("No matching server found!")
+    uploader.re_status()
 
 
 

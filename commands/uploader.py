@@ -16,7 +16,7 @@ send_channel = None
 
 first = 0
 send_status = 0
-send_time = (20, 00)
+send_time = (21, 39)
 
 async def ex(args, message, client, invoke, server):
     global status, send_channel, first
@@ -51,7 +51,7 @@ async def ex(args, message, client, invoke, server):
                         if send_channel != None:
                             content = "Starting uploader."
                             status = 1
-
+                            update_status(1)
 
                             main_loop = asyncio.get_event_loop()
 
@@ -72,6 +72,8 @@ async def ex(args, message, client, invoke, server):
                     else:
                         content = "Stopping uploader."
                         status = 0
+                        update_status(0)
+
                     await client.send_message(message.channel, content)
 
                 elif args_out == "set":
@@ -87,31 +89,38 @@ async def ex(args, message, client, invoke, server):
 
 
 def increase_down_count(dbx):
-    metadata, f = dbx.files_download('/' + "Pictures/info/name_info.txt")
+
+
+    path_file = "data/info.txt"
+    path_drop = "/Pictures/info/name_info.txt"
+
+    metadata, f = dbx.files_download(path_drop)
     numbers = str(f.content).replace("b", "").replace("'", "").split("\\r\\n")
     lastn = int(numbers[len(numbers)-1])+1
-    out = open("data/info.txt", 'wb')
+    out = open(path_file, 'wb')
     out.write(f.content)
     out.close()
-    txt = open("data/info.txt", 'w')
+    txt = open(path_file, 'w')
     txt.write(str(lastn))
     txt.close()
-    up = open("data/info.txt", 'rb')
-    dbx.files_upload(up.read(), "/Pictures/info/name_info.txt", mode=WriteMode('overwrite'))
-    up.close()
-    os.remove("data/info.txt")
+
+    use.drop_up(path_drop,path_file)
+
+    os.remove(path_file)
     return lastn
 
 async def reset_info(dbx,client,channel):
     await client.send_message(channel, "Info reseted")
-    metadata, f = dbx.files_download('/' + "Pictures/info/name_info_reset.txt")
-    out = open("data/info_reset.txt", 'wb')
-    out.write(f.content)
-    out.close()
-    up = open("data/info_reset.txt", 'rb')
+
+    path_file = "data/info_reset.txt"
+    path_drop = "/Pictures/info/name_info_reset.txt"
+
+    use.drop_down(path_drop, path_file)
+
+    up = open(path_file, 'rb')
     dbx.files_upload(up.read(), "/Pictures/info/name_info.txt", mode=WriteMode('overwrite'))
     up.close()
-    os.remove("data/info_reset.txt")
+    os.remove(path_file)
 
 async def send(dbx,client,channel):
     global first
@@ -123,35 +132,35 @@ async def send(dbx,client,channel):
     if len(file_list) > 0:
         send_name = random.choice(file_list)
 
-        metadata, f = dbx.files_download('/Pictures/main/' + send_name)
+        path_drop = '/Pictures/main/' + send_name
+        path_file = "data/temp/" + send_name
 
-        savepath = "data/temp/" + send_name
-        out = open(savepath, 'wb')
-        out.write(f.content)
-        out.close()
+        use.drop_down(path_drop, path_file)
 
         print("mid")
         if first == 1:
             first = 0
             await client.send_message(channel, "Hey, hey, hey\nSaucy Bot is online and will currently send a picture every day XD!!!")
 
-        await client.send_file(channel, savepath)
+        await client.send_file(channel, path_file)
         print("send")
         from_path = "/Pictures/main/" + send_name
         to_path = "/Pictures/output/" + send_name
 
         dbx.files_move_v2(from_path, to_path, allow_shared_folder=False, autorename=True)
 
-        os.remove("data/temp/"+send_name)
+        os.remove(path_file)
         increase_down_count(dbx)
     else:
         print ("Empty")
 
 async def get_upload_count(dbx,client,channel):
-    metadata, f = dbx.files_download('/' + "Pictures/info/name_info.txt")
-    out = open("data/info.txt", 'wb')
-    out.write(f.content)
-    out.close()
+
+
+    path_drop = "/Pictures/info/name_info.txt"
+    path_file = "data/info.txt"
+
+    use.drop_down(path_drop, path_file)
 
     with open("data/info.txt") as f:
         content = f.readlines()
@@ -174,9 +183,7 @@ async def set_channel(dbx, client, channel):
     f.write(str(channel_id))
     f.close()
 
-    up = open(path_channel, 'rb')
-    dbx.files_upload(up.read(), path_dbx, mode=WriteMode('overwrite'))
-    up.close()
+    use.drop_up(path_dbx,path_channel)
 
     send_channel = channel
 
@@ -187,10 +194,8 @@ async def check_for_channel_file(dbx, client, channel, server):
     path_dbx = "/Pictures/info/channel.txt"
 
     try:
-        metadata, f = dbx.files_download(path_dbx)
-        out = open(path_channel, 'wb')
-        out.write(f.content)
-        out.close()
+        use.drop_down(path_dbx,path_channel)
+
     except:
         print("No online file")
 
@@ -213,10 +218,8 @@ def sender_loop(client, channel, main_loop, dbx):
     global send_channel, status, send_time
     print("loop_on")
     while status == 1:
-
         if check_for_time(send_time):
             main_loop.create_task(send(dbx,client,send_channel))
-
         time.sleep(60)
 
 
@@ -257,3 +260,52 @@ def comp_time_greater(time1, time2):
         if time1[1] >= time2[1]:
             return True
     return False
+
+def update_status(num):
+
+    path_file = "data/temp/status.txt"
+    path_drop = "/Pictures/info/status.txt"
+    f = open(path_file, "w")
+    f.write(str(num))
+    f.close()
+    use.drop_up(path_drop, path_file)
+
+
+def re_status():
+    global status
+
+    path_file = "data/temp/status.txt"
+    path_drop = "/Pictures/info/status.txt"
+
+
+    use.drop_down(path_drop, path_file)
+
+    with open(path_file) as f:
+        content = f.readlines()
+        content = [x.strip() for x in content]
+        f.close()
+
+    if content[0] != str(status):
+        print ("Error")
+        error_process("Status reset!")
+
+    status = int(content[0])
+
+
+
+
+def error_process(error):
+
+    path_file = "data/temp/error.txt"
+    path_drop = "/Pictures/info/error.txt"
+
+    use.drop_down(path_drop, path_file)
+
+    with open(path_file, "a") as myfile:
+        new_id = "\n" + str(error)
+        myfile.write(new_id)
+        myfile.close()
+
+    use.drop_up(path_drop, path_file)
+
+    os.remove(path_file)
