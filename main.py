@@ -5,7 +5,7 @@ import CONECT
 import STATICS
 from use import use,get
 import time
-from commands import uploader
+from commands_2 import uploader
 import asyncio
 
 
@@ -19,18 +19,18 @@ channel_test = None
 
 
 
-client = discord.Client()
+client_2 = discord.Client()
 
-commands = {
+commands_2 = {
 
     "uploader": uploader,
 }
 
-@client.event
+@client_2.event
 async def on_ready():
-    global n_server,client
+    global n_server
     print("Bot is logged in successfully. Running on servers:\n")
-    for s in client.servers:
+    for s in client_2.servers:
         print("  - %s (%s)" % (s.name, s.id))
         if str(s.id) == CONECT.SERVER_ID:
             n_server = s
@@ -38,21 +38,21 @@ async def on_ready():
             bot_status = 1
     if n_server == None:
         print("No matching server found!")
-    await uploader.re_status(client, asyncio.get_event_loop(), n_server)
+    await uploader.re_status(client_2, asyncio.get_event_loop(), n_server)
 
 
 
-@client.event
+@client_2.event
 async def on_message(message):
-    global n_server,client
+    global n_server
     if message.content.startswith(STATICS.PREFIX):
         invoke = message.content[len(STATICS.PREFIX):].split(" ")[0]
         args = message.content.split(" ")[1:]
-        if commands.__contains__(invoke):
-            await commands.get(invoke).ex(args, message, client, invoke, n_server)
+        if commands_2.__contains__(invoke):
+            await commands_2.get(invoke).ex(args, message, client_2, invoke, n_server)
 
 
-client.run(CONECT.TOKEN)
+client_2.run(CONECT.TOKEN2)
 
 
 
